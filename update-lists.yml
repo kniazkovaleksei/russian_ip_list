@@ -1,0 +1,41 @@
+name: Update RU IP lists
+
+on:
+  schedule:
+    # каждый день в 03:15 UTC — поменяйте под себя (cron всегда в UTC)
+    - cron: "15 3 * * *"
+  workflow_dispatch: {}   # позволяет запустить вручную из вкладки Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ru-lists
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install python deps
+        run: pip install -r requirements.txt
+
+      - name: Run script
+        run: python main.py
+
+      - name: Commit and push updated lists
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/*.txt
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update RU IP lists ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+          git push
